@@ -11,17 +11,17 @@ app.use(cors());
 // ===== MongoDB Connection =====
 
 
-const mongoURI = process.env.MONGO_URI; // set in Render Environment variables
+const mongoURI = process.env.MONGO_URI;
+
+if (!mongoURI) {
+  console.error("❌ MONGO_URI not found in environment variables");
+  process.exit(1);
+}
 
 mongoose
-  .connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => {
-    console.error("MongoDB connection error:", err.message);
-  });
+  .connect(mongoURI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB connection error:", err.message));
 
 
 // ====== SCHEMAS ======
