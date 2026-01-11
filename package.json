@@ -22,3 +22,12 @@
     "nodemon": "^3.0.1"
   }
 }
+[
+  {
+    "_id":"64f8a1b2",
+    "companyName":"ABC Food Products",
+    "ownerName":"Ravi Kumar",
+    "city":"Chennai",
+    "products":[{"name":"Rice Flour","price":"₹45/kg"}]
+  }
+]
