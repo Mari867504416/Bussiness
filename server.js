@@ -88,14 +88,6 @@ app.post("/api/manufacturer/login", async (req,res)=>{
 
   res.send({message:"Login success", user});
 });
-const manufacturerSchema = new mongoose.Schema({
-  companyName: String,
-  ownerName: String,
-  mobile: String,
-  email: { type: String, unique: true },
-  username: { type: String, unique: true },
-  password: String
-});
 
 
 // Buyer Registration
