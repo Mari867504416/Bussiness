@@ -197,6 +197,14 @@ app.post("/api/manufacturer/register", async (req,res)=>{
   await m.save();
   res.send({ message: "Manufacturer Registered" });
 });
+app.get("/api/manufacturer/all", async (req, res) => {
+  try {
+    const manufacturers = await Manufacturer.find(); // MongoDB collection
+    res.json(manufacturers);
+  } catch(err) {
+    res.status(500).json({message:"Server error"});
+  }
+});
 
 
 
