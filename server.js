@@ -77,17 +77,34 @@ app.post("/api/manufacturer/register", async (req,res)=>{
 });
 
 // Manufacturer Login
+// Manufacturer Login (FINAL)
 app.post("/api/manufacturer/login", async (req,res)=>{
-  const {username,password} = req.body;
+  const { username, password } = req.body;
 
-  const user = await Manufacturer.findOne({username});
-  if(!user) return res.status(400).send({message:"User not found"});
+  // user can login using username OR email
+  const user = await Manufacturer.findOne({
+    $or: [
+      { username: username },
+      { email: username }
+    ]
+  });
 
-  const ok = await bcrypt.compare(password,user.password);
-  if(!ok) return res.status(400).send({message:"Invalid password"});
+  if(!user) return res.status(400).send({ message:"User not found" });
 
-  res.send({message:"Login success", user});
+  const ok = await bcrypt.compare(password, user.password);
+  if(!ok) return res.status(400).send({ message:"Invalid password" });
+
+  res.send({
+    message:"Login success",
+    user:{
+      _id:user._id,
+      companyName:user.companyName,
+      email:user.email,
+      mobile:user.mobile
+    }
+  });
 });
+
 
 
 // Buyer Registration
@@ -140,17 +157,36 @@ app.put("/api/order/status/:id", async(req,res)=>{
   await Order.findByIdAndUpdate(req.params.id,{status:req.body.status});
   res.send({message:"Updated"});
 });
+// Manufacturer Registration (FINAL)
 app.post("/api/manufacturer/register", async (req,res)=>{
-  const { username, email, password } = req.body;
+  try {
+    const { companyName, ownerName, mobile, email, password } = req.body;
 
-  const exists = await Manufacturer.findOne({ username });
-  if (exists) return res.status(400).send({ message: "Username already exists" });
+    // username = email for login convenience
+    const username = email;
 
-  const hashed = await bcrypt.hash(password, 10);
-  const m = new Manufacturer({ ...req.body, password: hashed });
+    // check existing account
+    const exists = await Manufacturer.findOne({ $or:[{email},{username}] });
+    if (exists) return res.status(400).send({ message: "Account already exists" });
 
-  await m.save();
-  res.send({ message: "Manufacturer Registered" });
+    const hashed = await bcrypt.hash(password, 10);
+
+    const m = new Manufacturer({
+      companyName,
+      ownerName,
+      mobile,
+      email,
+      username,
+      password: hashed
+    });
+
+    await m.save();
+
+    res.send({ message: "Manufacturer Registered Successfully" });
+
+  } catch(err){
+    res.status(500).send({ message:"Server Error", error:err.message });
+  }
 });
 
 
