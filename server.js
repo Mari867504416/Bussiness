@@ -9,9 +9,20 @@ app.use(express.json());
 app.use(cors());
 
 // ===== MongoDB Connection =====
-mongoose.connect("mongodb://localhost:27017/integratedPortal")
-.then(()=>console.log("MongoDB Connected"))
-.catch(err=>console.log(err));
+const mongoose = require("mongoose");
+
+const mongoURI = process.env.MONGO_URI; // set in Render Environment variables
+
+mongoose
+  .connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => {
+    console.error("MongoDB connection error:", err.message);
+  });
+
 
 // ====== SCHEMAS ======
 
