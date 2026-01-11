@@ -1,4 +1,4 @@
-"engines": { "node": "18.x" }
+
 {
   "name": "revenue-portal-backend",
   "version": "1.0.0",
