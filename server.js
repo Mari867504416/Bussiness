@@ -66,15 +66,50 @@ const Order = mongoose.model("Order", orderSchema);
 // ====== API ROUTES ======
 
 // Manufacturer Registration
-app.post("/api/manufacturer/register", async (req,res)=>{
-  const data = req.body;
+app.post("/api/manufacturer/register", async (req, res) => {
+  try {
+    const { companyName, ownerName, mobile, email, username, password, products } = req.body;
 
-  const hashed = await bcrypt.hash(data.password, 10);
+    // Mandatory validation
+    if (!companyName || !ownerName || !mobile || !email || !username || !password) {
+      return res.status(400).send({ message: "All fields are required" });
+    }
 
-  const m = new Manufacturer({...data, password: hashed});
-  await m.save();
-  res.send({message:"Manufacturer Registered"});
+    // Duplicate check (email or username)
+    const exists = await Manufacturer.findOne({
+      $or: [{ email }, { username }]
+    });
+
+    if (exists) {
+      return res.status(400).send({ message: "Account already exists" });
+    }
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    // Save
+    const m = new Manufacturer({
+      companyName,
+      ownerName,
+      mobile,
+      email,
+      username,
+      password: hashed,
+      products
+    });
+
+    await m.save();
+
+    res.send({ message: "Manufacturer Registered Successfully" });
+
+  } catch (err) {
+    res.status(500).send({
+      message: "Server Error",
+      error: err.message
+    });
+  }
 });
+
 
 // Manufacturer Login
 // Manufacturer Login (FINAL)
