@@ -134,16 +134,6 @@ app.post("/api/manufacturer/login", async (req,res)=>{
 });
 
 
-// PUT /api/manufacturer/update-products
-app.put('/api/manufacturer/update-products', async (req, res) => {
-  try {
-    const { id, products } = req.body;
-    const updated = await Manufacturer.findByIdAndUpdate(id, { products, updatedAt: new Date() }, { new: true });
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
 // Buyer Registration
 app.post("/api/buyer/register", async (req,res)=>{
@@ -220,5 +210,3 @@ app.get("/api/manufacturer/all", async (req, res) => {
 
 // Run server
 app.listen(5000,()=>console.log("Server running on 5000"));
-
-
