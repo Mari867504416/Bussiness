@@ -1,13 +1,15 @@
-
 {
   "name": "Bussiness",
   "version": "1.0.0",
-  "description": "Bussiness",
+  "description": "Integrated Manufacturer Portal Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
+  "keywords": ["manufacturer", "business", "express", "mongodb"],
+  "author": "Your Name",
+  "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -15,11 +17,10 @@
     "express": "^4.18.2",
     "express-rate-limit": "^6.7.0",
     "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.6.5"
-
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   }
 }
-
