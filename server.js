@@ -160,13 +160,7 @@ app.post("/api/manufacturer/register", async (req,res)=>{
   await m.save();
   res.send({ message: "Manufacturer Registered" });
 });
-const token = jwt.sign(
-  { id: user._id, role: "manufacturer" },
-  process.env.JWT_SECRET,
-  { expiresIn: "1d" }
-);
 
-res.send({ message: "Login success", token, user: safeUser });
 
 
 // Run server
