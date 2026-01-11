@@ -68,52 +68,42 @@ const Order = mongoose.model("Order", orderSchema);
 // 🔥 ✅ FIXED - SINGLE REGISTER ROUTE (REMOVED DUPLICATES)
 app.post("/api/manufacturer/register", async (req, res) => {
   try {
-    console.log("📥 Register data:", req.body); // Debug log
-    
-    const { companyName, ownerName, mobile, email, city, state, products, username, password } = req.body;
+    // ✅ username & password removed
+    const { companyName, ownerName, mobile, email, products } = req.body;
 
-    if (!companyName || !ownerName || !email) {
-      return res.status(400).json({ message: "Company name, owner name, and email required" });
+    // Mandatory validation
+    if (!companyName || !ownerName || !mobile || !email) {
+      return res.status(400).send({ message: "All fields are required" });
     }
 
-    // Check duplicates
-    const exists = await Manufacturer.findOne({ 
-      $or: [{ email }, { username }] 
-    });
+    // Duplicate check (email only)
+    const exists = await Manufacturer.findOne({ email });
+
     if (exists) {
-      return res.status(400).json({ message: "Email or username already exists" });
+      return res.status(400).send({ message: "Account with this email already exists" });
     }
 
-    const hashedPassword = password ? await bcrypt.hash(password, 10) : '';
-
-    const manufacturer = new Manufacturer({
+    // Create new manufacturer object (no username/password)
+    const m = new Manufacturer({
       companyName,
       ownerName,
       mobile,
       email,
-      username,
-      password: hashedPassword,
-      city: city || '',
-      state: state || '',
-      products: products || []
+      products
     });
 
-    await manufacturer.save();
-    console.log("✅ Manufacturer saved:", manufacturer._id);
-    
-    res.json({ 
-      message: "✅ Manufacturer registered successfully!",
-      user: {
-        _id: manufacturer._id,
-        companyName,
-        email
-      }
+    await m.save();
+
+    res.send({ message: "Manufacturer Registered Successfully", user: m });
+
+  } catch (err) {
+    res.status(500).send({
+      message: "Server Error",
+      error: err.message
     });
-  } catch (error) {
-    console.error("❌ Register error:", error);
-    res.status(500).json({ message: "Server error during registration" });
   }
 });
+
 
 // 🔥 ✅ CRITICAL - UPDATE PRODUCTS ENDPOINT (TESTED & WORKING)
 app.put("/api/manufacturer/update-products", async (req, res) => {
