@@ -158,16 +158,24 @@ app.put("/api/order/status/:id", async(req,res)=>{
   res.send({message:"Updated"});
 });
 // Manufacturer Registration (FINAL)
-app.post("/api/manufacturer/register", async (req,res)=>{
+router.post("/register", async (req, res) => {
   try {
-    const { companyName, ownerName, mobile, email, password } = req.body;
+    const { companyName, ownerName, mobile, email, username, password } = req.body;
 
-    // username = email for login convenience
-    const username = email;
+    if (!companyName || !ownerName || !mobile || !email || !username || !password) {
+      return res.status(400).send({ message: "All fields are required" });
+    }
 
-    // check existing account
-    const exists = await Manufacturer.findOne({ $or:[{email},{username}] });
-    if (exists) return res.status(400).send({ message: "Account already exists" });
+    const exists = await Manufacturer.findOne({
+      $or: [
+        { email },
+        { username }
+      ]
+    });
+
+    if (exists) {
+      return res.status(400).send({ message: "Account already exists" });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
 
@@ -184,10 +192,11 @@ app.post("/api/manufacturer/register", async (req,res)=>{
 
     res.send({ message: "Manufacturer Registered Successfully" });
 
-  } catch(err){
-    res.status(500).send({ message:"Server Error", error:err.message });
+  } catch (err) {
+    res.status(500).send({ message: "Server Error", error: err.message });
   }
 });
+
 
 
 
