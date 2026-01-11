@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(cors());
 
 // ===== MongoDB Connection =====
-const mongoose = require("mongoose");
+
 
 const mongoURI = process.env.MONGO_URI; // set in Render Environment variables
 
