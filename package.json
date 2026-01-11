@@ -1,8 +1,8 @@
 
 {
-  "name": "revenue-portal-backend",
+  "name": "Bussiness",
   "version": "1.0.0",
-  "description": "Backend for Revenue Portal",
+  "description": "Bussiness",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,6 +16,8 @@
     "express-rate-limit": "^6.7.0",
     "helmet": "^7.0.0",
     "mongoose": "^7.6.5"
+    "jsonwebtoken": "^9.0.2"
+
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
