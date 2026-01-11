@@ -88,6 +88,14 @@ app.post("/api/manufacturer/login", async (req,res)=>{
 
   res.send({message:"Login success", user});
 });
+const manufacturerSchema = new mongoose.Schema({
+  companyName: String,
+  ownerName: String,
+  mobile: String,
+  email: { type: String, unique: true },
+  username: { type: String, unique: true },
+  password: String
+});
 
 
 // Buyer Registration
@@ -140,7 +148,28 @@ app.put("/api/order/status/:id", async(req,res)=>{
   await Order.findByIdAndUpdate(req.params.id,{status:req.body.status});
   res.send({message:"Updated"});
 });
+app.post("/api/manufacturer/register", async (req,res)=>{
+  const { username, email, password } = req.body;
+
+  const exists = await Manufacturer.findOne({ username });
+  if (exists) return res.status(400).send({ message: "Username already exists" });
+
+  const hashed = await bcrypt.hash(password, 10);
+  const m = new Manufacturer({ ...req.body, password: hashed });
+
+  await m.save();
+  res.send({ message: "Manufacturer Registered" });
+});
+const token = jwt.sign(
+  { id: user._id, role: "manufacturer" },
+  process.env.JWT_SECRET,
+  { expiresIn: "1d" }
+);
+
+res.send({ message: "Login success", token, user: safeUser });
 
 
 // Run server
-app.listen(5000,()=>console.log("Server running on 5000"));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+
