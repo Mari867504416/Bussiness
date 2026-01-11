@@ -157,31 +157,18 @@ app.put("/api/order/status/:id", async(req,res)=>{
   await Order.findByIdAndUpdate(req.params.id,{status:req.body.status});
   res.send({message:"Updated"});
 });
-// Manufacturer Registration (FINAL)
- const exists = await Manufacturer.findOne({ $or:[{email},{username}] });
-    if (exists) return res.status(400).send({ message: "Account already exists" });
+app.post("/api/manufacturer/register", async (req,res)=>{
+  const { username, email, password } = req.body;
 
-    const hashed = await bcrypt.hash(password, 10);
+  const exists = await Manufacturer.findOne({ username });
+  if (exists) return res.status(400).send({ message: "Username already exists" });
 
-    const m = new Manufacturer({
-      companyName,
-      ownerName,
-      mobile,
-      email,  
-      username,
-      password: hashed
-    });
+  const hashed = await bcrypt.hash(password, 10);
+  const m = new Manufacturer({ ...req.body, password: hashed });
 
-    await m.save();
-
-    res.send({ message: "Manufacturer Registered Successfully" });
-
-  } catch(err){
-    res.status(500).send({ message:"Server Error", error:err.message });
-  }
-}); check my backend is correct 
-
-
+  await m.save();
+  res.send({ message: "Manufacturer Registered" });
+});
 
 
 
