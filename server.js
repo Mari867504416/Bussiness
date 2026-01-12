@@ -39,23 +39,40 @@ mongoose.connect(mongoURI)
   .catch(err => console.error("❌ MongoDB Error:", err));
 
 // SCHEMAS
-const manufacturerSchema = new mongoose.Schema({
-  companyName: { type: String, required: true },
-  ownerName: { type: String, required: true },
-  mobile: String,
-  email: { type: String, required: true, unique: true },
-  username: { type: String, unique: true },
-  password: String,
-  city: String,
-  state: String,
-  products: [{
-    name: { type: String, required: true },
-    description: String,
-    price: { type: Number, required: true },
-    updatedAt: { type: Date, default: Date.now }
-  }],
-  updatedAt: { type: Date, default: Date.now }
-});
+const manufacturerSchema = new mongoose.Schema(
+  {
+    companyName: { type: String, required: true },
+    ownerName: { type: String, required: true },
+    mobile: String,
+    email: { type: String, required: true, unique: true },
+    username: { type: String, unique: true },
+    password: String,
+
+    address: {
+      doorNo: String,
+      street: String,
+      area: String,
+      city: String,
+      district: String,
+      state: String,
+      pincode: String
+    },
+
+    city: String,
+    state: String,
+
+    products: [
+      {
+        name: { type: String, required: true },
+        description: String,
+        price: { type: Number, required: true },
+        updatedAt: { type: Date, default: Date.now }
+      }
+    ]
+  },
+  { timestamps: true }
+);
+
 
 const buyerSchema = new mongoose.Schema({
   name: String,
@@ -94,7 +111,7 @@ app.get("/api/health", (req, res) => {
 // 🔥 MANUFACTURER ROUTES
 app.post("/api/manufacturer/register", async (req, res) => {
   try {
-    const { companyName, ownerName, mobile, email, username, password, products, city, state } = req.body;
+    const { companyName, ownerName, mobile, email, username, password, products, city, state, address } = req.body;
 
     if (!companyName || !ownerName || !mobile || !email || !username || !password) {
       return res.status(400).send({ message: "All fields are required" });
@@ -117,6 +134,7 @@ app.post("/api/manufacturer/register", async (req, res) => {
       password: hashedPassword,
       city,
       state,
+      address,
       products: products || []
     });
 
@@ -130,38 +148,7 @@ app.post("/api/manufacturer/register", async (req, res) => {
     res.status(500).send({ message: "Server Error", error: err.message });
   }
 });
-app.post("/api/manufacturer/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const user = await Manufacturer.findOne({ $or: [{ username }, { email: username }] }).select('+password');
 
-    if (!user || !await bcrypt.compare(password, user.password)) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign(
-      { id: user._id, type: 'manufacturer', companyName: user.companyName },
-      process.env.JWT_SECRET || 'your_secret_key',
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      message: "Login successful",
-      token,
-      user: {
-        _id: user._id,
-        companyName: user.companyName,
-        email: user.email,
-        mobile: user.mobile,
-        city: user.city,
-        state: user.state,
-        products: user.products
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Login error" });
-  }
-});
 
 // 🔥 BUYER ROUTES - FIXED FOR FRONTEND COMPATIBILITY
 app.post("/api/buyer/register", async (req, res) => {
