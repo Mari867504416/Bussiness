@@ -240,6 +240,93 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Order creation failed", error: err.message });
   }
 });
+// 🔥 ADD THESE 2 ROUTES TO YOUR BACKEND (after existing manufacturer orders route)
+
+// ✅ ROUTE 1: Manufacturer Orders (Frontend expects this EXACT path)
+app.get("/api/manufacturer/orders", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.type !== 'manufacturer') {
+      return res.status(403).json({ message: "Access denied - Manufacturer only" });
+    }
+    
+    const orders = await Order.find({ 
+      manufacturerId: req.user.id 
+    })
+    .sort({ createdAt: -1 })
+    .select('-__v');
+    
+    // Frontend expects { orders: [...] } format
+    res.json({ 
+      orders: orders,
+      count: orders.length 
+    });
+    
+    console.log(`📦 Manufacturer ${req.user.companyName} orders: ${orders.length}`);
+  } catch (err) {
+    console.error("❌ Manufacturer orders error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ✅ ROUTE 2: Update Order Status (Frontend expects this EXACT path)
+app.put("/api/manufacturer/orders/update", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.type !== 'manufacturer') {
+      return res.status(403).json({ message: "Access denied - Manufacturer only" });
+    }
+
+    const { orderId, status } = req.body;
+    
+    if (!orderId || !status) {
+      return res.status(400).json({ message: "orderId and status required" });
+    }
+
+    const order = await Order.findOne({ 
+      _id: orderId, 
+      manufacturerId: req.user.id 
+    });
+    
+    if (!order) {
+      return res.status(404).json({ message: "Order not found or not authorized" });
+    }
+
+    // Validate status workflow
+    const statusWorkflow = {
+      'Pending': ['Allowed', 'Cancelled'],
+      'Allowed': ['Approved', 'Cancelled'],
+      'Approved': ['Delivered', 'Cancelled'],
+      'Delivered': [],
+      'Cancelled': []
+    };
+
+    const validNextStatuses = statusWorkflow[order.status] || [];
+    if (!validNextStatuses.includes(status)) {
+      return res.status(400).json({ 
+        message: `Invalid status transition from ${order.status} to ${status}`,
+        allowed: validNextStatuses
+      });
+    }
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      order._id,
+      { 
+        status, 
+        statusUpdatedAt: new Date() 
+      },
+      { new: true }
+    );
+
+    console.log(`✅ Order ${orderId} updated to ${status} by ${req.user.companyName}`);
+    
+    res.json({ 
+      message: "Status updated successfully",
+      order: updatedOrder 
+    });
+  } catch (err) {
+    console.error("❌ Order update error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // 🔥 FRONTEND EXPECTS THIS EXACT ROUTE - BACKWARD COMPATIBILITY
 app.get("/api/buyer/:buyerId/orders", async (req, res) => {
