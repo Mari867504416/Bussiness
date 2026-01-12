@@ -151,13 +151,19 @@ app.post("/api/manufacturer/login", async (req, res) => {
   }
 });
 
-// 🔥 BUYER ROUTES
+// 🔥 BUYER ROUTES - FIXED FOR FRONTEND COMPATIBILITY
 app.post("/api/buyer/register", async (req, res) => {
   try {
     const hashed = await bcrypt.hash(req.body.password, 10);
     const buyer = new Buyer({ ...req.body, password: hashed });
     await buyer.save();
-    res.json({ message: "Buyer registered" });
+    
+    // Return buyerId for frontend localStorage
+    res.json({ 
+      message: "Buyer registered", 
+      buyerId: buyer._id.toString(),
+      buyerName: buyer.name 
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -173,7 +179,12 @@ app.post("/api/buyer/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, type: 'buyer', name: user.name },
+      { 
+        id: user._id, 
+        type: 'buyer', 
+        name: user.name,
+        buyerId: user._id.toString()  // ✅ FIXED: Frontend expects this
+      },
       process.env.JWT_SECRET || 'your_secret_key',
       { expiresIn: '24h' }
     );
@@ -183,12 +194,50 @@ app.post("/api/buyer/login", async (req, res) => {
       token,
       user: {
         _id: user._id,
+        buyerId: user._id.toString(),  // ✅ Frontend expects this
         name: user.name,
         email: user.email
       }
     });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 🔥 NEW: FRONTEND EXPECTS /api/orders (POST)
+app.post("/api/orders", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.type !== 'buyer') {
+      return res.status(403).json({ message: "Access denied - Buyer only" });
+    }
+    
+    const orderId = `ORD${Date.now().toString().slice(-6)}`;
+    const order = new Order({
+      id: orderId,
+      buyerId: req.user.buyerId || req.user.id.toString(),
+      buyerName: req.user.name,
+      manufacturerId: req.body.manufacturerId,
+      manufacturerName: req.body.manufacturerName,
+      product: req.body.product,
+      quantity: req.body.quantity,
+      price: req.body.price,
+      total: req.body.total,
+      status: req.body.status || 'Pending',
+      orderDate: req.body.orderDate || new Date()
+    });
+    
+    await order.save();
+    console.log(`✅ New order created: ${orderId} by ${req.user.name}`);
+    
+    res.json({
+      message: "Order created successfully",
+      id: orderId,
+      orderId,
+      _id: order._id
+    });
+  } catch (err) {
+    console.error("❌ Order creation error:", err);
+    res.status(500).json({ message: "Order creation failed", error: err.message });
   }
 });
 
@@ -261,27 +310,22 @@ app.get("/api/manufacturer/all", async (req, res) => {
   }
 });
 
-// 🔥 ORDER ROUTES
-app.post("/api/order/create", authenticateToken, async (req, res) => {
+// 🔥 FIXED: Buyer orders endpoint (frontend expects /api/orders/buyer)
+app.get("/api/orders/buyer", authenticateToken, async (req, res) => {
   try {
     if (req.user.type !== 'buyer') {
       return res.status(403).json({ message: "Access denied" });
     }
-    
-    const orderId = `ORD${Date.now()}`;
-    const order = new Order({
-      id: orderId,
-      ...req.body,
-      buyerId: req.user.id,
-      buyerName: req.user.name
-    });
-    await order.save();
-    res.json({ message: "Order created", orderId });
+    const orders = await Order.find({ buyerId: req.user.buyerId || req.user.id })
+      .sort({ createdAt: -1 })
+      .select('-__v');
+    res.json(orders);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
+// 🔥 Manufacturer orders endpoint
 app.get("/api/orders/manufacturer", authenticateToken, async (req, res) => {
   try {
     if (req.user.type !== 'manufacturer') {
@@ -294,18 +338,7 @@ app.get("/api/orders/manufacturer", authenticateToken, async (req, res) => {
   }
 });
 
-app.get("/api/orders/buyer", authenticateToken, async (req, res) => {
-  try {
-    if (req.user.type !== 'buyer') {
-      return res.status(403).json({ message: "Access denied" });
-    }
-    const orders = await Order.find({ buyerId: req.user.id }).sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
+// 🔥 Order status update (manufacturer only)
 app.put("/api/order/status/:id", authenticateToken, async (req, res) => {
   try {
     if (req.user.type !== 'manufacturer') {
@@ -348,5 +381,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🔗 Health: http://localhost:${PORT}/api/health`);
-  console.log(`🔗 Buyer orders: http://localhost:${PORT}/api/buyer/:id/orders`);
+  console.log(`🔗 Orders: POST http://localhost:${PORT}/api/orders`);
+  console.log(`🔗 Buyer orders: GET http://localhost:${PORT}/api/orders/buyer`);
+  console.log(`🔗 All manufacturers: GET http://localhost:${PORT}/api/manufacturer/all`);
 });
