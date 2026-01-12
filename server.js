@@ -94,95 +94,42 @@ app.get("/api/health", (req, res) => {
 // 🔥 MANUFACTURER ROUTES
 app.post("/api/manufacturer/register", async (req, res) => {
   try {
-    const {
-      companyName,
-      ownerName,
-      mobile,
-      email,
-      username,
-      password,
-      confirmPassword,
-      gstNumber,
-      doorNo,
-      street,
-      area,
-      district,
-      
-       } = req.body;
+    const { companyName, ownerName, mobile, email, username, password, products, city, state } = req.body;
 
-    // ===== Required field validation =====
-    if (
-      !companyName ||
-      !ownerName ||
-      !mobile ||
-      !email ||
-      !username ||
-      !password ||
-      !confirmPassword ||
-    
-      !doorNo ||
-      !street ||
-      !area ||
-      !district ||
-     
-    ) {
+    if (!companyName || !ownerName || !mobile || !email || !username || !password) {
       return res.status(400).send({ message: "All fields are required" });
     }
 
-    // ===== Confirm password check =====
-    if (password !== confirmPassword) {
-      return res.status(400).send({ message: "Password and Confirm Password do not match" });
-    }
-
-    // ===== Check duplicate user =====
-    const exists = await Manufacturer.findOne({
-      $or: [{ email }, { username }]
-    });
+    const exists = await Manufacturer.findOne({ $or: [{ email }, { username }] });
 
     if (exists) {
       return res.status(400).send({ message: "Email or Username already exists" });
     }
 
-    
-      // ===== Hash Password =====
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ===== State always Tamil Nadu =====
-    const state = "Tamil Nadu";
-
-    // ===== Create Manufacturer =====
     const m = new Manufacturer({
       companyName,
       ownerName,
       mobile,
       email,
-        
-      products: products || [],
-      gstNumber,
-      address: {
-        doorNo,
-        street,
-        area,
-        district,
-        state
-      }
+      username,
+      password: hashedPassword,
+      city,
+      state,
+      products: products || []
     });
 
     await m.save();
 
-    res.send({
-      message: "Manufacturer Registered Successfully",
-      user: m
-    });
-
+    res.send({ message: "Manufacturer Registered Successfully", user: m });
   } catch (err) {
-    res.status(500).send({
-      message: "Server Error",
-      error: err.message
-    });
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Duplicate key error", key: err.keyValue });
+    }
+    res.status(500).send({ message: "Server Error", error: err.message });
   }
 });
-
 app.post("/api/manufacturer/login", async (req, res) => {
   try {
     const { username, password } = req.body;
