@@ -94,27 +94,110 @@ app.get("/api/health", (req, res) => {
 // 🔥 MANUFACTURER ROUTES
 app.post("/api/manufacturer/register", async (req, res) => {
   try {
-    const { companyName, ownerName, mobile, email, username, password, products, city, state } = req.body;
+    const {
+      companyName,
+      ownerName,
+      mobile,
+      email,
+      username,
+      password,
+      confirmPassword,
+      gstNumber,
+      doorNo,
+      street,
+      area,
+      district,
+      emailOtp,
+      products
+    } = req.body;
 
-    if (!companyName || !ownerName || !mobile || !email || !username || !password) {
+    // ===== Required field validation =====
+    if (
+      !companyName ||
+      !ownerName ||
+      !mobile ||
+      !email ||
+      !username ||
+      !password ||
+      !confirmPassword ||
+      !gstNumber ||
+      !doorNo ||
+      !street ||
+      !area ||
+      !district ||
+      !emailOtp
+    ) {
       return res.status(400).send({ message: "All fields are required" });
     }
 
-    const exists = await Manufacturer.findOne({ $or: [{ email }, { username }] });
+    // ===== Confirm password check =====
+    if (password !== confirmPassword) {
+      return res.status(400).send({ message: "Password and Confirm Password do not match" });
+    }
+
+    // ===== Check duplicate user =====
+    const exists = await Manufacturer.findOne({
+      $or: [{ email }, { username }]
+    });
+
     if (exists) {
       return res.status(400).send({ message: "Email or Username already exists" });
     }
 
+    // ===== Validate GST basic format (simple regex) =====
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstRegex.test(gstNumber)) {
+      return res.status(400).send({ message: "Invalid GST Number format" });
+    }
+
+    // ===== Email OTP verification check =====
+    // NOTE: Replace this with your actual OTP storage/verification logic
+    const storedOtp = await OtpModel.findOne({ email });
+
+    if (!storedOtp || storedOtp.otp !== emailOtp) {
+      return res.status(400).send({ message: "Invalid or expired OTP" });
+    }
+
+    // Optional: delete OTP after success
+    await OtpModel.deleteOne({ email });
+
+    // ===== Hash Password =====
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ===== State always Tamil Nadu =====
+    const state = "Tamil Nadu";
+
+    // ===== Create Manufacturer =====
     const m = new Manufacturer({
-      companyName, ownerName, mobile, email, username,
-      password: hashedPassword, city, state, products: products || []
+      companyName,
+      ownerName,
+      mobile,
+      email,
+      username,
+      password: hashedPassword,
+      products: products || [],
+      gstNumber,
+      address: {
+        doorNo,
+        street,
+        area,
+        district,
+        state
+      }
     });
 
     await m.save();
-    res.send({ message: "Manufacturer Registered Successfully", user: m });
+
+    res.send({
+      message: "Manufacturer Registered Successfully",
+      user: m
+    });
+
   } catch (err) {
-    res.status(500).send({ message: "Server Error", error: err.message });
+    res.status(500).send({
+      message: "Server Error",
+      error: err.message
+    });
   }
 });
 
