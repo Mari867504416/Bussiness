@@ -107,9 +107,8 @@ app.post("/api/manufacturer/register", async (req, res) => {
       street,
       area,
       district,
-      emailOtp,
-      products
-    } = req.body;
+      
+       } = req.body;
 
     // ===== Required field validation =====
     if (
@@ -120,12 +119,12 @@ app.post("/api/manufacturer/register", async (req, res) => {
       !username ||
       !password ||
       !confirmPassword ||
-      !gstNumber ||
+    
       !doorNo ||
       !street ||
       !area ||
       !district ||
-      !emailOtp
+     
     ) {
       return res.status(400).send({ message: "All fields are required" });
     }
@@ -144,24 +143,8 @@ app.post("/api/manufacturer/register", async (req, res) => {
       return res.status(400).send({ message: "Email or Username already exists" });
     }
 
-    // ===== Validate GST basic format (simple regex) =====
-    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    if (!gstRegex.test(gstNumber)) {
-      return res.status(400).send({ message: "Invalid GST Number format" });
-    }
-
-    // ===== Email OTP verification check =====
-    // NOTE: Replace this with your actual OTP storage/verification logic
-    const storedOtp = await OtpModel.findOne({ email });
-
-    if (!storedOtp || storedOtp.otp !== emailOtp) {
-      return res.status(400).send({ message: "Invalid or expired OTP" });
-    }
-
-    // Optional: delete OTP after success
-    await OtpModel.deleteOne({ email });
-
-    // ===== Hash Password =====
+    
+      // ===== Hash Password =====
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // ===== State always Tamil Nadu =====
@@ -173,8 +156,7 @@ app.post("/api/manufacturer/register", async (req, res) => {
       ownerName,
       mobile,
       email,
-      username,
-      password: hashedPassword,
+        
       products: products || [],
       gstNumber,
       address: {
