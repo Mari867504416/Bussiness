@@ -68,16 +68,22 @@ const buyerSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  id: String, // ORD123 format
   buyerId: String,
   buyerName: String,
   manufacturerId: String,
   manufacturerName: String,
   product: String,
   quantity: Number,
+  price: Number,
   total: Number,
-  status: { type: String, default: "Pending" },
-  date: { type: Date, default: Date.now }
+  status: { type: String, default: 'Pending' },
+  orderDate: Date,
+  statusUpdatedAt: Date,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
+
 
 const Buyer = mongoose.model("Buyer", buyerSchema);
 const Order = mongoose.model("Order", orderSchema);
