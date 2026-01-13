@@ -49,13 +49,20 @@ const manufacturerSchema = new mongoose.Schema({
   city: String,
   state: String,
   products: [{
-    name: { type: String, required: true },
-    description: String,
-    price: { type: Number, required: true },
+    name: { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
+    price: { type: Number, required: true, min: 0 },
+    department: { type: String, default: '' },           // ✅ NEW
+    category: { type: String, default: '' },             // ✅ NEW
+    district: { type: String, default: '' },             // ✅ NEW
+    state: { type: String, default: 'Tamil Nadu' },      // ✅ NEW
+    mfgDate: { type: Date },                             // ✅ NEW
+    image: { type: String },                             // ✅ NEW
     updatedAt: { type: Date, default: Date.now }
   }],
   updatedAt: { type: Date, default: Date.now }
 });
+
 
 const buyerSchema = new mongoose.Schema({
   name: String,
