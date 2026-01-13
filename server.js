@@ -57,7 +57,6 @@ const manufacturerSchema = new mongoose.Schema({
     district: { type: String, default: '' },             // ✅ NEW
     state: { type: String, default: 'Tamil Nadu' },      // ✅ NEW
     mfgDate: { type: Date },                             // ✅ NEW
-    image: { type: String },                             // ✅ NEW
     updatedAt: { type: Date, default: Date.now }
   }],
   updatedAt: { type: Date, default: Date.now }
