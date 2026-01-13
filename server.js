@@ -37,8 +37,6 @@ if (!mongoURI) {
 mongoose.connect(mongoURI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ MongoDB Error:", err));
-
-// SCHEMAS
 const manufacturerSchema = new mongoose.Schema({
   companyName: { type: String, required: true },
   ownerName: { type: String, required: true },
@@ -48,20 +46,20 @@ const manufacturerSchema = new mongoose.Schema({
   password: String,
   city: String,
   state: String,
-  products: [{
-    name: { type: String, required: true, trim: true },
-    description: { type: String, default: '' },
-    price: { type: Number, required: true, min: 0 },
-    department: { type: String, default: '' },           // ✅ NEW
-    category: { type: String, default: '' },             // ✅ NEW
-    district: { type: String, default: '' },             // ✅ NEW
-    state: { type: String, default: 'Tamil Nadu' },      // ✅ NEW
-    mfgDate: { type: Date },                             // ✅ NEW
-    updatedAt: { type: Date, default: Date.now }
-  }],
-  updatedAt: { type: Date, default: Date.now }
-});
 
+  /* product snapshot storage */
+  products: [{
+    name: { type: String, required: true },
+    description: String,
+    price: Number,
+    department: String,
+    category: String,
+    district: String,
+    state: { type: String, default: "Tamil Nadu" },
+    mfgDate: Date,
+    image: String
+  }]
+});
 
 const buyerSchema = new mongoose.Schema({
   name: String,
@@ -71,19 +69,44 @@ const buyerSchema = new mongoose.Schema({
   password: String
 });
 
+/* ✅ FIXED: ORDER SCHEMA NOW STORES ALL REQUIRED FIELDS */
 const orderSchema = new mongoose.Schema({
+
+  /* identifiers */
   id: String,
   buyerId: String,
-  buyerName: String,
   manufacturerId: String,
+
+  /* buyer snapshot */
+  buyerName: String,
+  buyerMobile: String,
+
+  /* manufacturer snapshot */
   manufacturerName: String,
+  companyName: String,
+  ownerName: String,
+  manufacturerMobile: String,
+  manufacturerEmail: String,
+  manufacturerCity: String,
+  manufacturerState: String,
+
+  /* product snapshot */
   product: String,
   quantity: Number,
   price: Number,
   total: Number,
-  status: { type: String, default: 'Pending' },
-  orderDate: Date,
+
+  department: String,
+  category: String,
+  district: String,
+  productState: String,
+  mfgDate: Date,
+
+  /* status */
+  status: { type: String, default: "Pending" },
+  orderDate: { type: Date, default: Date.now },
   statusUpdatedAt: Date,
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -91,6 +114,85 @@ const orderSchema = new mongoose.Schema({
 const Manufacturer = mongoose.model("Manufacturer", manufacturerSchema);
 const Buyer = mongoose.model("Buyer", buyerSchema);
 const Order = mongoose.model("Order", orderSchema);
+
+/* ========================== ROUTES ============================= */
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
+/* ====================== ORDER CREATION FIXED ====================== */
+/* 👉 This now stores all required fields automatically */
+
+app.post("/api/orders", authenticateToken, async (req, res) => {
+  try {
+
+    if (req.user.type !== "buyer") {
+      return res.status(403).json({ message: "Access denied - Buyer only" });
+    }
+
+    // fetch buyer
+    const buyer = await Buyer.findById(req.user.id);
+
+    // fetch manufacturer
+    const manufacturer = await Manufacturer.findById(req.body.manufacturerId);
+
+    // locate product inside manufacturer
+    const product = manufacturer.products.id(req.body.productId);
+
+    const orderId = `ORD${Date.now().toString().slice(-6)}`;
+
+    const order = new Order({
+
+      id: orderId,
+
+      /* buyer data */
+      buyerId: buyer._id.toString(),
+      buyerName: buyer.name,
+      buyerMobile: buyer.mobile,
+
+      /* manufacturer data */
+      manufacturerId: manufacturer._id.toString(),
+      manufacturerName: manufacturer.companyName,
+      companyName: manufacturer.companyName,
+      ownerName: manufacturer.ownerName,
+      manufacturerMobile: manufacturer.mobile,
+      manufacturerEmail: manufacturer.email,
+      manufacturerCity: manufacturer.city,
+      manufacturerState: manufacturer.state,
+
+      /* product data snapshot */
+      product: product.name,
+      quantity: req.body.quantity,
+      price: product.price,
+      total: product.price * req.body.quantity,
+
+      department: product.department,
+      category: product.category,
+      district: product.district,
+      productState: product.state,
+      mfgDate: product.mfgDate,
+
+      status: "Pending",
+      orderDate: new Date()
+    });
+
+    await order.save();
+
+    res.json({
+      message: "Order created successfully",
+      orderId,
+      id: orderId,
+      _id: order._id
+    });
+
+  } catch (err) {
+    console.error("❌ Order creation error:", err);
+    res.status(500).json({ message: "Order creation failed", error: err.message });
+  }
+});
+
+
 
 // 🔥 HEALTH CHECK - Frontend expects this
 app.get("/api/health", (req, res) => {
