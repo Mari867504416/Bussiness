@@ -193,6 +193,52 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
 });
 
 
+app.post("/api/orders", authenticateToken, async (req, res) => {
+  try {
+
+    const product = await Product.findById(req.body.productId);
+    const manufacturer = await Manufacturer.findById(product.manufacturerId);
+    const buyer = await User.findById(req.user.id);
+
+    const order = new Order({
+      manufacturerId: manufacturer._id,
+      buyerId: buyer._id,
+      productId: product._id,
+
+      productName: product.name,
+      quantity: req.body.quantity,
+      price: product.price,
+      totalAmount: product.price * req.body.quantity,
+
+      // store product meta
+      department: product.department,
+      category: product.category,
+      district: product.district,
+      state: product.state,
+      mfgDate: product.mfgDate,
+
+      // manufacturer snapshot
+      manufacturerName: manufacturer.companyName,
+      companyName: manufacturer.companyName,
+      ownerName: manufacturer.ownerName,
+      manufacturerMobile: manufacturer.mobile,
+      manufacturerEmail: manufacturer.email,
+      manufacturerCity: manufacturer.city,
+      manufacturerState: manufacturer.state,
+
+      // buyer snapshot
+      buyerName: buyer.name,
+      buyerMobile: buyer.mobile
+    });
+
+    await order.save();
+    res.json({ success: true, order });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Order creation failed" });
+  }
+});
 
 // 🔥 HEALTH CHECK - Frontend expects this
 app.get("/api/health", (req, res) => {
