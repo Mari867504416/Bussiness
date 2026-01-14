@@ -118,6 +118,38 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
+app.post("/api/manufacturer/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const user = await Manufacturer.findOne({ $or: [{ username }, { email: username }] }).select('+password');
+
+    if (!user || !await bcrypt.compare(password, user.password)) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, type: 'manufacturer', companyName: user.companyName },
+      process.env.JWT_SECRET || 'your_secret_key',
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: {
+        _id: user._id,
+        companyName: user.companyName,
+        email: user.email,
+        mobile: user.mobile,
+        city: user.city,
+        state: user.state,
+        products: user.products
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Login error" });
+  }
+});
 // 🔥 MANUFACTURER ROUTES
 app.post("/api/manufacturer/register", async (req, res) => {
   try {
