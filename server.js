@@ -62,7 +62,6 @@ const manufacturerSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
-
 const buyerSchema = new mongoose.Schema({
   name: String,
   mobile: String,
@@ -71,6 +70,7 @@ const buyerSchema = new mongoose.Schema({
   password: String
 });
 
+// 🔥 UPDATED ORDER SCHEMA WITH PRODUCT METADATA
 const orderSchema = new mongoose.Schema({
   id: String,
   buyerId: String,
@@ -85,7 +85,14 @@ const orderSchema = new mongoose.Schema({
   orderDate: Date,
   statusUpdatedAt: Date,
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+  
+  // ✅ UPDATED: ADDED PRODUCT METADATA FIELDS
+  department: { type: String, default: '' },
+  category: { type: String, default: '' },
+  district: { type: String, default: '' },
+  state: { type: String, default: 'Tamil Nadu' },
+  mfgDate: { type: Date }
 });
 
 const Manufacturer = mongoose.model("Manufacturer", manufacturerSchema);
@@ -210,7 +217,7 @@ app.post("/api/buyer/login", async (req, res) => {
   }
 });
 
-// 🔥 NEW: FRONTEND EXPECTS /api/orders (POST)
+// 🔥 UPDATED: FRONTEND EXPECTS /api/orders (POST) WITH PRODUCT METADATA
 app.post("/api/orders", authenticateToken, async (req, res) => {
   try {
     if (req.user.type !== 'buyer') {
@@ -218,6 +225,8 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
     }
     
     const orderId = `ORD${Date.now().toString().slice(-6)}`;
+    
+    // ✅ UPDATED: INCLUDING ALL PRODUCT METADATA FROM FRONTEND
     const order = new Order({
       id: orderId,
       buyerId: req.user.buyerId || req.user.id.toString(),
@@ -229,11 +238,25 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
       price: req.body.price,
       total: req.body.total,
       status: req.body.status || 'Pending',
-      orderDate: req.body.orderDate || new Date()
+      orderDate: req.body.orderDate || new Date(),
+      
+      // ✅ NEW: PRODUCT METADATA FIELDS
+      department: req.body.department || '',
+      category: req.body.category || '',
+      district: req.body.district || '',
+      state: req.body.state || 'Tamil Nadu',
+      mfgDate: req.body.mfgDate || null
     });
     
     await order.save();
+    
     console.log(`✅ New order created: ${orderId} by ${req.user.name}`);
+    console.log(`📦 Product: ${req.body.product}`);
+    console.log(`🏭 Company: ${req.body.manufacturerName}`);
+    console.log(`📊 Department: ${req.body.department || 'N/A'}`);
+    console.log(`📂 Category: ${req.body.category || 'N/A'}`);
+    console.log(`📍 District: ${req.body.district || 'N/A'}`);
+    console.log(`🗺️ State: ${req.body.state || 'Tamil Nadu'}`);
     
     res.json({
       message: "Order created successfully",
@@ -243,9 +266,11 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Order creation error:", err);
+    console.error("❌ Request body:", req.body);
     res.status(500).json({ message: "Order creation failed", error: err.message });
   }
 });
+
 // 🔥 ADD THESE 2 ROUTES TO YOUR BACKEND (after existing manufacturer orders route)
 
 // ✅ ROUTE 1: Manufacturer Orders (Frontend expects this EXACT path)
@@ -386,7 +411,7 @@ app.get("/api/manufacturer/profile", authenticateToken, async (req, res) => {
     const manufacturer = await Manufacturer.findById(req.user.id);
     if (!manufacturer) {
       return res.status(404).json({ message: "Manufacturer not found" });
-    }
+    });
     
     res.json(manufacturer);
   } catch (error) {
@@ -477,4 +502,5 @@ app.listen(PORT, () => {
   console.log(`🔗 Orders: POST http://localhost:${PORT}/api/orders`);
   console.log(`🔗 Buyer orders: GET http://localhost:${PORT}/api/orders/buyer`);
   console.log(`🔗 All manufacturers: GET http://localhost:${PORT}/api/manufacturer/all`);
+  console.log(`📦 Product Metadata: ✅ ENABLED`);
 });
