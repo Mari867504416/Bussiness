@@ -145,39 +145,73 @@ app.post("/api/manufacturer/register", async (req, res) => {
   }
 });
 
-app.post("/api/manufacturer/login", async (req, res) => {
+app.post("/api/buyer/login", async (req, res) => {
   try {
     const { username, password } = req.body;
-    const user = await Manufacturer.findOne({ $or: [{ username }, { email: username }] }).select('+password');
-
-    if (!user || !await bcrypt.compare(password, user.password)) {
+    
+    // 🔍 DEBUG: Log incoming request
+    console.log("📥 Buyer login attempt for username:", username);
+    
+    // Find user by username OR email
+    const user = await Buyer.findOne({ 
+      $or: [{ username: username }, { email: username }]
+    }).select('+password');
+    
+    if (!user) {
+      console.log("❌ Buyer not found for username:", username);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // Check password
+    const passwordValid = await bcrypt.compare(password, user.password);
+    if (!passwordValid) {
+      console.log("❌ Invalid password for user:", user._id);
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Create JWT token
     const token = jwt.sign(
-      { id: user._id, type: 'manufacturer', companyName: user.companyName },
+      { 
+        id: user._id, 
+        type: 'buyer', 
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+        username: user.username,
+        buyerId: user._id.toString()
+      },
       process.env.JWT_SECRET || 'your_secret_key',
       { expiresIn: '24h' }
     );
 
-    res.json({
-      message: "Login successful",
+    // 🔍 DEBUG: Log user data
+    console.log("✅ Buyer login successful:", {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      username: user.username
+    });
+
+    // ✅ RETURN COMPLETE USER DATA (ALL FIELDS REQUIRED)
+    res.json({ 
+      message: "Login success", 
       token,
       user: {
         _id: user._id,
-        companyName: user.companyName,
-        email: user.email,
-        mobile: user.mobile,
-        city: user.city,
-        state: user.state,
-        products: user.products
+        buyerId: user._id.toString(),
+        name: user.name,
+        email: user.email || "",        // ✅ Always include (even if null)
+        mobile: user.mobile || "",      // ✅ CRITICAL: Include mobile
+        username: user.username || ""   // ✅ CRITICAL: Include username
       }
     });
-  } catch (error) {
-    res.status(500).json({ message: "Login error" });
+    
+  } catch (err) {
+    console.error("❌ Buyer login error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
-
 // 🔥 BUYER ROUTES - FIXED FOR FRONTEND COMPATIBILITY
 app.post("/api/buyer/register", async (req, res) => {
   try {
