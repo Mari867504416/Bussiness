@@ -57,8 +57,7 @@ const manufacturerSchema = new mongoose.Schema({
     district: String,
     state: { type: String, default: "Tamil Nadu" },
     mfgDate: Date,
-    image: String
-  }]
+   }]
 });
 
 const buyerSchema = new mongoose.Schema({
