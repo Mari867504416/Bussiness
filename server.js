@@ -271,8 +271,6 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
   }
 });
 
-// 🔥 ADD THESE 2 ROUTES TO YOUR BACKEND (after existing manufacturer orders route)
-
 // ✅ ROUTE 1: Manufacturer Orders (Frontend expects this EXACT path)
 app.get("/api/manufacturer/orders", authenticateToken, async (req, res) => {
   try {
@@ -411,7 +409,7 @@ app.get("/api/manufacturer/profile", authenticateToken, async (req, res) => {
     const manufacturer = await Manufacturer.findById(req.user.id);
     if (!manufacturer) {
       return res.status(404).json({ message: "Manufacturer not found" });
-    });
+    }
     
     res.json(manufacturer);
   } catch (error) {
