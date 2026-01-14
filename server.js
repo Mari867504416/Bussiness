@@ -77,6 +77,14 @@ const orderSchema = new mongoose.Schema({
   buyerName: String,
   manufacturerId: String,
   manufacturerName: String,
+  
+  // ✅ NEW: Manufacturer Contact Details
+  manufacturerOwner: { type: String, default: 'N/A' },
+  manufacturerMobile: { type: String, default: 'N/A' },
+  manufacturerEmail: { type: String, default: 'N/A' },
+  manufacturerCity: { type: String, default: 'N/A' },
+  manufacturerState: { type: String, default: 'Tamil Nadu' },
+  
   product: String,
   quantity: Number,
   price: Number,
@@ -87,13 +95,14 @@ const orderSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   
-  // ✅ UPDATED: ADDED PRODUCT METADATA FIELDS
+  // Product Metadata
   department: { type: String, default: '' },
   category: { type: String, default: '' },
   district: { type: String, default: '' },
   state: { type: String, default: 'Tamil Nadu' },
   mfgDate: { type: Date }
 });
+ 
 
 const Manufacturer = mongoose.model("Manufacturer", manufacturerSchema);
 const Buyer = mongoose.model("Buyer", buyerSchema);
@@ -226,13 +235,23 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
     
     const orderId = `ORD${Date.now().toString().slice(-6)}`;
     
-    // ✅ UPDATED: INCLUDING ALL PRODUCT METADATA FROM FRONTEND
     const order = new Order({
       id: orderId,
       buyerId: req.user.buyerId || req.user.id.toString(),
       buyerName: req.user.name,
+      
+      // Manufacturer Details
       manufacturerId: req.body.manufacturerId,
       manufacturerName: req.body.manufacturerName,
+      
+      // ✅ NEW: Manufacturer Contact Details
+      manufacturerOwner: req.body.manufacturerOwner || 'N/A',
+      manufacturerMobile: req.body.manufacturerMobile || 'N/A',
+      manufacturerEmail: req.body.manufacturerEmail || 'N/A',
+      manufacturerCity: req.body.manufacturerCity || 'N/A',
+      manufacturerState: req.body.manufacturerState || 'Tamil Nadu',
+      
+      // Product & Order Details
       product: req.body.product,
       quantity: req.body.quantity,
       price: req.body.price,
@@ -240,7 +259,7 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
       status: req.body.status || 'Pending',
       orderDate: req.body.orderDate || new Date(),
       
-      // ✅ NEW: PRODUCT METADATA FIELDS
+      // Product Metadata
       department: req.body.department || '',
       category: req.body.category || '',
       district: req.body.district || '',
@@ -250,13 +269,12 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
     
     await order.save();
     
-    console.log(`✅ New order created: ${orderId} by ${req.user.name}`);
-    console.log(`📦 Product: ${req.body.product}`);
-    console.log(`🏭 Company: ${req.body.manufacturerName}`);
-    console.log(`📊 Department: ${req.body.department || 'N/A'}`);
-    console.log(`📂 Category: ${req.body.category || 'N/A'}`);
-    console.log(`📍 District: ${req.body.district || 'N/A'}`);
-    console.log(`🗺️ State: ${req.body.state || 'Tamil Nadu'}`);
+    console.log(`✅ New order with complete manufacturer details`);
+    console.log(`🏢 Company: ${req.body.manufacturerName}`);
+    console.log(`👤 Owner: ${req.body.manufacturerOwner}`);
+    console.log(`📱 Mobile: ${req.body.manufacturerMobile}`);
+    console.log(`✉️ Email: ${req.body.manufacturerEmail}`);
+    console.log(`📍 Location: ${req.body.manufacturerCity}, ${req.body.manufacturerState}`);
     
     res.json({
       message: "Order created successfully",
@@ -266,11 +284,9 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Order creation error:", err);
-    console.error("❌ Request body:", req.body);
     res.status(500).json({ message: "Order creation failed", error: err.message });
   }
 });
-
 // ✅ ROUTE 1: Manufacturer Orders (Frontend expects this EXACT path)
 app.get("/api/manufacturer/orders", authenticateToken, async (req, res) => {
   try {
