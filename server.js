@@ -75,16 +75,21 @@ const orderSchema = new mongoose.Schema({
   id: String,
   buyerId: String,
   buyerName: String,
+  buyerEmail: String,
+  buyerMobile: String,
+  buyerUsername: String,
+  buyingTime: Date,  // NEW: When buyer placed order
+  
+  // Manufacturer Details
   manufacturerId: String,
   manufacturerName: String,
-  
-  // ✅ NEW: Manufacturer Contact Details
   manufacturerOwner: { type: String, default: 'N/A' },
   manufacturerMobile: { type: String, default: 'N/A' },
   manufacturerEmail: { type: String, default: 'N/A' },
   manufacturerCity: { type: String, default: 'N/A' },
   manufacturerState: { type: String, default: 'Tamil Nadu' },
   
+  // Product & Order Details
   product: String,
   quantity: Number,
   price: Number,
