@@ -37,6 +37,8 @@ if (!mongoURI) {
 mongoose.connect(mongoURI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ MongoDB Error:", err));
+
+// SCHEMAS
 const manufacturerSchema = new mongoose.Schema({
   companyName: { type: String, required: true },
   ownerName: { type: String, required: true },
@@ -46,19 +48,20 @@ const manufacturerSchema = new mongoose.Schema({
   password: String,
   city: String,
   state: String,
-
-  /* product snapshot storage */
   products: [{
-    name: { type: String, required: true },
-    description: String,
-    price: Number,
-    department: String,
-    category: String,
-    district: String,
-    state: { type: String, default: "Tamil Nadu" },
-    mfgDate: Date,
-   }]
+    name: { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
+    price: { type: Number, required: true, min: 0 },
+    department: { type: String, default: '' },           // ✅ NEW
+    category: { type: String, default: '' },             // ✅ NEW
+    district: { type: String, default: '' },             // ✅ NEW
+    state: { type: String, default: 'Tamil Nadu' },      // ✅ NEW
+    mfgDate: { type: Date },                             // ✅ NEW
+    updatedAt: { type: Date, default: Date.now }
+  }],
+  updatedAt: { type: Date, default: Date.now }
 });
+
 
 const buyerSchema = new mongoose.Schema({
   name: String,
@@ -68,44 +71,19 @@ const buyerSchema = new mongoose.Schema({
   password: String
 });
 
-/* ✅ FIXED: ORDER SCHEMA NOW STORES ALL REQUIRED FIELDS */
 const orderSchema = new mongoose.Schema({
-
-  /* identifiers */
   id: String,
   buyerId: String,
-  manufacturerId: String,
-
-  /* buyer snapshot */
   buyerName: String,
-  buyerMobile: String,
-
-  /* manufacturer snapshot */
+  manufacturerId: String,
   manufacturerName: String,
-  companyName: String,
-  ownerName: String,
-  manufacturerMobile: String,
-  manufacturerEmail: String,
-  manufacturerCity: String,
-  manufacturerState: String,
-
-  /* product snapshot */
   product: String,
   quantity: Number,
   price: Number,
   total: Number,
-
-  department: String,
-  category: String,
-  district: String,
-  productState: String,
-  mfgDate: Date,
-
-  /* status */
-  status: { type: String, default: "Pending" },
-  orderDate: { type: Date, default: Date.now },
+  status: { type: String, default: 'Pending' },
+  orderDate: Date,
   statusUpdatedAt: Date,
-
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -113,63 +91,6 @@ const orderSchema = new mongoose.Schema({
 const Manufacturer = mongoose.model("Manufacturer", manufacturerSchema);
 const Buyer = mongoose.model("Buyer", buyerSchema);
 const Order = mongoose.model("Order", orderSchema);
-
-/* ========================== ROUTES ============================= */
-
-app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() });
-});
-
-/* ====================== ORDER CREATION FIXED ====================== */
-/* 👉 This now stores all required fields automatically */
-
-
-app.post("/api/orders", authenticateToken, async (req, res) => {
-  try {
-
-    const product = await Product.findById(req.body.productId);
-    const manufacturer = await Manufacturer.findById(product.manufacturerId);
-    const buyer = await User.findById(req.user.id);
-
-    const order = new Order({
-      manufacturerId: manufacturer._id,
-      buyerId: buyer._id,
-      productId: product._id,
-
-      productName: product.name,
-      quantity: req.body.quantity,
-      price: product.price,
-      totalAmount: product.price * req.body.quantity,
-
-      // store product meta
-      department: product.department,
-      category: product.category,
-      district: product.district,
-      state: product.state,
-      mfgDate: product.mfgDate,
-
-      // manufacturer snapshot
-      manufacturerName: manufacturer.companyName,
-      companyName: manufacturer.companyName,
-      ownerName: manufacturer.ownerName,
-      manufacturerMobile: manufacturer.mobile,
-      manufacturerEmail: manufacturer.email,
-      manufacturerCity: manufacturer.city,
-      manufacturerState: manufacturer.state,
-
-      // buyer snapshot
-      buyerName: buyer.name,
-      buyerMobile: buyer.mobile
-    });
-
-    await order.save();
-    res.json({ success: true, order });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Order creation failed" });
-  }
-});
 
 // 🔥 HEALTH CHECK - Frontend expects this
 app.get("/api/health", (req, res) => {
