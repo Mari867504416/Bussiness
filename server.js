@@ -63,11 +63,12 @@ const manufacturerSchema = new mongoose.Schema({
 });
 
 const buyerSchema = new mongoose.Schema({
-  name: String,
-  mobile: String,
-  email: String,
-  username: { type: String, unique: true },
-  password: String
+  name: { type: String, required: true },        // ✅
+  mobile: { type: String },                       // ✅ Required for manufacturer dashboard
+  email: { type: String },                        // ✅  
+  username: { type: String, unique: true },       // ✅ Required for login
+  password: { type: String, required: true },     // ✅
+  createdAt: { type: Date, default: Date.now }    // ✅
 });
 
 // 🔥 UPDATED ORDER SCHEMA WITH PRODUCT METADATA
@@ -247,18 +248,50 @@ app.post("/api/buyer/login", async (req, res) => {
 // 🔥 BUYER ROUTES - FIXED FOR FRONTEND COMPATIBILITY
 app.post("/api/buyer/register", async (req, res) => {
   try {
-    const hashed = await bcrypt.hash(req.body.password, 10);
-    const buyer = new Buyer({ ...req.body, password: hashed });
+    const { name, mobile, email, username, password } = req.body;
+    
+    // Validate required fields
+    if (!name || !username || !password) {
+      return res.status(400).json({ message: "Name, username and password are required" });
+    }
+    
+    // Check if user exists
+    const exists = await Buyer.findOne({ 
+      $or: [{ username }, { email }] 
+    });
+    
+    if (exists) {
+      return res.status(400).json({ message: "Username or email already exists" });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create buyer with ALL fields
+    const buyer = new Buyer({
+      name,
+      mobile: mobile || "",      // Save even if empty
+      email: email || "",        // Save even if empty
+      username,
+      password: hashedPassword
+    });
+    
     await buyer.save();
     
-    // Return buyerId for frontend localStorage
+    // Return COMPLETE data
     res.json({ 
-      message: "Buyer registered", 
-      buyerId: buyer._id.toString(),
-      buyerName: buyer.name 
+      message: "Buyer registered successfully", 
+      buyer: {
+        _id: buyer._id,
+        name: buyer.name,
+        email: buyer.email,
+        mobile: buyer.mobile,
+        username: buyer.username
+      }
     });
+    
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Registration failed", error: err.message });
   }
 });
 
